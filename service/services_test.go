@@ -9,9 +9,22 @@ import (
 	"time"
 )
 
+var fileName = "test_task.json"
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+	shutdown(fileName)
+	os.Exit(code)
+}
+
+func shutdown(fileName string) {
+	if err := os.Remove(fileName); err != nil {
+		log.Printf("Failed to remove file %s: %v", fileName, err)
+	}
+}
+
 func Test_AddTask(t *testing.T) {
 
-	fileName := "test_task.json"
 	task := model.Task{
 		Id:          1,
 		Description: "Test",
@@ -26,28 +39,7 @@ func Test_AddTask(t *testing.T) {
 		return
 	}
 
-	file, err := os.Open(fileName)
-	if err != nil {
-		t.Errorf("expected to open file %s but got error: %v", fileName, err)
-		return
-	}
-	defer func() {
-		_ = file.Close()
-		if err = os.Remove(fileName); err != nil {
-			log.Printf("Failed to remove file %s: %v", fileName, err)
-		}
-	}()
-
-	var tasks []model.Task
-	decoder := json.NewDecoder(file)
-	decoder.DisallowUnknownFields()
-	for decoder.More() {
-		err = decoder.Decode(&tasks)
-		if err != nil {
-			t.Errorf("expected to decode json from file but got error: %v", err)
-			return
-		}
-	}
+	tasks, err := getTasksFromFileOrFail(t)
 
 	if tasksLen := len(tasks); tasksLen != 1 {
 		t.Errorf("expected to retrieve one task, but got %d", tasksLen)
@@ -62,9 +54,7 @@ func Test_AddTask(t *testing.T) {
 }
 
 func Test_GetAllTasks(t *testing.T) {
-	fileName := "test_task.json"
-
-	if err := addTaskOrFail(fileName, t); err != nil {
+	if _, err := addTaskOrFail(fileName, t); err != nil {
 		return
 	}
 
@@ -74,28 +64,55 @@ func Test_GetAllTasks(t *testing.T) {
 		return
 	}
 
-	if len(tasks) < 1 {
+	if len(tasks) != 1 {
 		t.Errorf("expected to retrieve one task, but got: %d", len(tasks))
 		return
 	}
 
 }
 
-/*
 func Test_UpdateTask(t *testing.T) {
+	task, err := addTaskOrFail(fileName, t)
+	if err != nil {
+		return
+	}
+	newDescription := "New task description"
 
-	fileName := "test_task.json"
-
-	if err := addTaskOrFail(fileName, t); err != nil {
+	if err = UpdateTask(task.Id, newDescription, fileName); err != nil {
+		t.Errorf("expected to get no errors from UpdateTask call but got error: %v", err)
 		return
 	}
 
-	newDescription := "New task description"
+	tasks, err := getTasksFromFileOrFail(t)
+	if err != nil {
+		return
+	}
+
+	if len(tasks) == 0 {
+		t.Errorf("expected to retrieve array with one task, but got array with %d tasks", len(tasks))
+		return
+	}
+
+	var actualTask model.Task
+	for _, actualTask = range tasks {
+		if actualTask.Id == task.Id {
+			break
+		}
+	}
+
+	if actualTask == (model.Task{}) {
+		t.Errorf("expected to retrieve task with id %d but got no tasks", task.Id)
+		return
+	}
+
+	if actualTask.Description != newDescription {
+		t.Errorf(`expected to retrieve task with description "%s" but got task with description "%s"`, newDescription, tasks[0].Description)
+		return
+	}
 
 }
-*/
 
-func addTaskOrFail(fileName string, t *testing.T) error {
+func addTaskOrFail(fileName string, t *testing.T) (model.Task, error) {
 	task := model.Task{
 		Id:          1,
 		Description: "Test",
@@ -105,7 +122,29 @@ func addTaskOrFail(fileName string, t *testing.T) error {
 	}
 	if err := AddTask(task, fileName); err != nil {
 		t.Errorf("expected to get no errors from AddTask call but got error: %v", err)
-		return err
+		return model.Task{}, err
 	}
-	return nil
+	return task, nil
+}
+
+func getTasksFromFileOrFail(t *testing.T) ([]model.Task, error) {
+	file, err := os.Open(fileName)
+	if err != nil {
+		t.Errorf("expected to open file %s but got error: %v", fileName, err)
+		return nil, err
+	}
+	defer file.Close()
+
+	var tasks []model.Task
+	decoder := json.NewDecoder(file)
+	decoder.DisallowUnknownFields()
+	for decoder.More() {
+		err = decoder.Decode(&tasks)
+		if err != nil {
+			t.Errorf("expected to decode json from file but got error: %v", err)
+			return nil, err
+		}
+	}
+
+	return tasks, nil
 }
