@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"fmt"
+	"strings"
+	"time"
+)
 
 type TaskStatus int
 
@@ -18,10 +22,26 @@ func (t TaskStatus) EnumIndex() int {
 	return int(t)
 }
 
+type DateTime time.Time
+
+func (t *DateTime) MarshalJSON() ([]byte, error) {
+	stamp := fmt.Sprintf(`"%s"`, time.Time(*t).Format("2006-01-02 15:04:05"))
+	return []byte(stamp), nil
+}
+
+func (t *DateTime) UnmarshalJSON(b []byte) (err error) {
+	date, err := time.Parse("2006-01-02 15:04:05", strings.Replace(string(b), `"`, "", 2))
+	if err != nil {
+		return err
+	}
+	*t = DateTime(date)
+	return
+}
+
 type Task struct {
-	Id          string
-	Description string
-	Status      TaskStatus
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Id          int        `json:"Id"`
+	Description string     `json:"Description"`
+	Status      TaskStatus `json:"Status"`
+	CreatedAt   DateTime   `json:"CreatedAt"`
+	UpdatedAt   DateTime   `json:"UpdatedAt"`
 }
