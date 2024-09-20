@@ -8,17 +8,10 @@ import (
 )
 
 func AddTask(task model.Task, path string) error {
-	fileData, err := os.ReadFile(path)
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to read file: %w", err)
-	}
 
-	var tasks []model.Task
-	if len(fileData) > 0 {
-		err = json.Unmarshal(fileData, &tasks)
-		if err != nil {
-			return fmt.Errorf("failed to unmarshal tasks: %w", err)
-		}
+	tasks, err := GetAllTasks(path)
+	if err != nil {
+		return err
 	}
 
 	tasks = append(tasks, task)
@@ -33,4 +26,20 @@ func AddTask(task model.Task, path string) error {
 	}
 
 	return nil
+}
+
+func GetAllTasks(path string) ([]model.Task, error) {
+	fileData, err := os.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	var tasks []model.Task
+	if len(fileData) > 0 {
+		err = json.Unmarshal(fileData, &tasks)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal tasks: %w", err)
+		}
+	}
+	return tasks, nil
 }

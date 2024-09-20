@@ -21,7 +21,6 @@ func Test_AddTask(t *testing.T) {
 	}
 
 	err := AddTask(task, fileName)
-
 	if err != nil {
 		t.Errorf("expected to get no errors from AddTask call but got error: %v", err)
 		return
@@ -60,4 +59,53 @@ func Test_AddTask(t *testing.T) {
 		return
 	}
 
+}
+
+func Test_GetAllTasks(t *testing.T) {
+	fileName := "test_task.json"
+
+	if err := addTaskOrFail(fileName, t); err != nil {
+		return
+	}
+
+	tasks, err := GetAllTasks(fileName)
+	if err != nil {
+		t.Errorf("expected to get no errors from GetAllTasks call but got error: %v", err)
+		return
+	}
+
+	if len(tasks) < 1 {
+		t.Errorf("expected to retrieve one task, but got: %d", len(tasks))
+		return
+	}
+
+}
+
+/*
+func Test_UpdateTask(t *testing.T) {
+
+	fileName := "test_task.json"
+
+	if err := addTaskOrFail(fileName, t); err != nil {
+		return
+	}
+
+	newDescription := "New task description"
+
+}
+*/
+
+func addTaskOrFail(fileName string, t *testing.T) error {
+	task := model.Task{
+		Id:          1,
+		Description: "Test",
+		Status:      0,
+		CreatedAt:   model.DateTime(time.Now()),
+		UpdatedAt:   model.DateTime(time.Now()),
+	}
+	if err := AddTask(task, fileName); err != nil {
+		t.Errorf("expected to get no errors from AddTask call but got error: %v", err)
+		return err
+	}
+	return nil
 }
