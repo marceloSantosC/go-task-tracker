@@ -28,9 +28,9 @@ func Test_AddTask(t *testing.T) {
 		UpdatedAt:   model.DateTime(time.Now()),
 	}
 
-	err := Add(task, fileName)
+	err := AddTask(task, fileName)
 	if err != nil {
-		t.Errorf("expected to get no errors from Add call but got error: %v", err)
+		t.Errorf("expected to get no errors from AddTask call but got error: %v", err)
 		return
 	}
 
@@ -228,8 +228,8 @@ func Test_UpdateStatus(t *testing.T) {
 			d.taskId, d.expectedStatus, d.expectedStatus.String(), d.path, d.expectedStatus)
 
 		t.Run(testName, func(t *testing.T) {
-			if err = UpdateStatus(d.taskId, d.expectedStatus, d.path); err != nil {
-				t.Errorf("expected no error from UpdateStatus call but got \"%s\"", err)
+			if err = UpdateTaskStatus(d.taskId, d.expectedStatus, d.path); err != nil {
+				t.Errorf("expected no error from UpdateTaskStatus call but got \"%s\"", err)
 				return
 			}
 
@@ -276,8 +276,8 @@ func Test_GetAllTasksByStatusEqualsTrue(t *testing.T) {
 		}
 		tasks[i] = task
 
-		if err := Add(task, fileName); err != nil {
-			t.Errorf("expected to get no errors from Add call but got error: %v", err)
+		if err := AddTask(task, fileName); err != nil {
+			t.Errorf("expected to get no errors from AddTask call but got error: %v", err)
 			return
 		}
 	}
@@ -327,8 +327,8 @@ func Test_GetAllTasksByStatusEqualsFalse(t *testing.T) {
 		}
 		tasks[i] = task
 
-		if err := Add(task, fileName); err != nil {
-			t.Errorf("expected to get no errors from Add call but got error: %v", err)
+		if err := AddTask(task, fileName); err != nil {
+			t.Errorf("expected to get no errors from AddTask call but got error: %v", err)
 			return
 		}
 	}
@@ -380,8 +380,8 @@ func addNTasksOrFail(fileName string, numberOfTasks int, t *testing.T) ([]model.
 
 		tasks[i] = task
 
-		if err := Add(task, fileName); err != nil {
-			t.Errorf("expected to get no errors from Add call but got error: %v", err)
+		if err := AddTask(task, fileName); err != nil {
+			t.Errorf("expected to get no errors from AddTask call but got error: %v", err)
 			return nil, err
 		}
 	}
@@ -397,8 +397,8 @@ func addTaskOrFail(fileName string, t *testing.T) (model.Task, error) {
 		CreatedAt:   model.DateTime(time.Now()),
 		UpdatedAt:   model.DateTime(time.Now()),
 	}
-	if err := Add(task, fileName); err != nil {
-		t.Errorf("expected to get no errors from Add call but got error: %v", err)
+	if err := AddTask(task, fileName); err != nil {
+		t.Errorf("expected to get no errors from AddTask call but got error: %v", err)
 		return model.Task{}, err
 	}
 	return task, nil

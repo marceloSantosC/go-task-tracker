@@ -10,7 +10,21 @@ import (
 	"time"
 )
 
-func Add(task model.Task, path string) error {
+type TaskRepository interface {
+	AddTask(task model.Task, path string) error
+
+	UpdateTask(taskId int, description string, path string) error
+
+	GetAllTasks(path string) ([]model.Task, error)
+
+	DeleteTask(taskId int, path string) error
+
+	UpdateTaskStatus(taskId int, status model.TaskStatus, path string) error
+
+	GetAllTasksByStatus(status model.TaskStatus, equals bool, path string) ([]model.Task, error)
+}
+
+func AddTask(task model.Task, path string) error {
 
 	tasks, err := GetAllTasks(path)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -127,7 +141,7 @@ func DeleteTask(taskId int, path string) error {
 	return nil
 }
 
-func UpdateStatus(taskId int, status model.TaskStatus, path string) error {
+func UpdateTaskStatus(taskId int, status model.TaskStatus, path string) error {
 
 	tasks, err := GetAllTasks(path)
 	if err != nil {
