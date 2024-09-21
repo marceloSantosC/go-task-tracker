@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func shutdown(fileName string) {
+func removeFile(fileName string) {
 	if err := os.Remove(fileName); err != nil {
 		log.Panicf("Failed to remove file %s: %v", fileName, err)
 	}
@@ -18,7 +18,7 @@ func shutdown(fileName string) {
 
 func Test_AddTask(t *testing.T) {
 	const fileName = "test_task.json"
-	defer shutdown(fileName)
+	defer removeFile(fileName)
 
 	task := model.Task{
 		Id:          1,
@@ -50,7 +50,7 @@ func Test_AddTask(t *testing.T) {
 
 func Test_GetAllTasks(t *testing.T) {
 	const fileName = "test_task.json"
-	defer shutdown(fileName)
+	defer removeFile(fileName)
 
 	if _, err := addTaskOrFail(fileName, t); err != nil {
 		return
@@ -71,7 +71,7 @@ func Test_GetAllTasks(t *testing.T) {
 
 func Test_UpdateTask(t *testing.T) {
 	const fileName = "test_task.json"
-	defer shutdown(fileName)
+	defer removeFile(fileName)
 
 	task, err := addTaskOrFail(fileName, t)
 	if err != nil {
@@ -115,7 +115,7 @@ func Test_UpdateTask(t *testing.T) {
 
 func Test_DeleteTask(t *testing.T) {
 	const fileName = "test_task.json"
-	defer shutdown(fileName)
+	defer removeFile(fileName)
 
 	task, err := addTaskOrFail(fileName, t)
 	if err != nil {
@@ -145,7 +145,7 @@ func Test_DeleteTask(t *testing.T) {
 
 func Test_DeleteLastTaskWithMultipleTasksWritten(t *testing.T) {
 	const fileName = "test_task.json"
-	defer shutdown(fileName)
+	defer removeFile(fileName)
 
 	createdTasks, err := addNTasksOrFail(fileName, 5, t)
 	if err != nil {
@@ -175,7 +175,7 @@ func Test_DeleteLastTaskWithMultipleTasksWritten(t *testing.T) {
 
 func Test_DeleteTaskWithMultipleTasksWritten(t *testing.T) {
 	const fileName = "test_task.json"
-	defer shutdown(fileName)
+	defer removeFile(fileName)
 
 	createdTasks, err := addNTasksOrFail(fileName, 5, t)
 	if err != nil {
@@ -205,7 +205,7 @@ func Test_DeleteTaskWithMultipleTasksWritten(t *testing.T) {
 
 func Test_UpdateStatus(t *testing.T) {
 	const fileName = "test_task.json"
-	defer shutdown(fileName)
+	defer removeFile(fileName)
 
 	task, err := addTaskOrFail(fileName, t)
 	if err != nil {
@@ -218,8 +218,8 @@ func Test_UpdateStatus(t *testing.T) {
 		path           string
 	}{
 		{task.Id, model.TODO, fileName},
-		{task.Id, model.IN_PROGRESS, fileName},
-		{task.Id, model.DONE, fileName},
+		{task.Id, model.InProgress, fileName},
+		{task.Id, model.Done, fileName},
 	}
 
 	for _, d := range testTable {
@@ -259,7 +259,110 @@ func Test_UpdateStatus(t *testing.T) {
 		})
 
 	}
+}
 
+func Test_GetAllTasksByStatusEqualsTrue(t *testing.T) {
+	const fileName = "test_task.json"
+	defer removeFile(fileName)
+
+	tasks := make([]model.Task, 3)
+	for i := range 3 {
+		task := model.Task{
+			Id:          i,
+			Description: fmt.Sprintf("Test %d", i),
+			Status:      model.TaskStatus(i),
+			CreatedAt:   model.DateTime(time.Now()),
+			UpdatedAt:   model.DateTime(time.Now()),
+		}
+		tasks[i] = task
+
+		if err := AddTask(task, fileName); err != nil {
+			t.Errorf("expected to get no errors from AddTask call but got error: %v", err)
+			return
+		}
+	}
+
+	var testData = []struct{ want model.TaskStatus }{
+		{want: model.TODO}, {want: model.InProgress}, {want: model.Done},
+	}
+
+	for _, d := range testData {
+
+		var testName = fmt.Sprintf("should get all tasks with status %s given inputs status=%s, equals=%t, path=%s",
+			d.want.String(), d.want.String(), true, fileName)
+
+		t.Run(testName, func(t *testing.T) {
+			returnedTasks, err := GetAllTasksByStatus(d.want, true, fileName)
+			if err != nil {
+				t.Errorf("expected no errors from GetAllTasksByStatus call got \"%s\"", err)
+				return
+			}
+
+			if nOfTasks := len(returnedTasks); nOfTasks != 1 {
+				t.Errorf("expected one task returned from GetAllTasksByStatus got %d tasks", nOfTasks)
+				return
+			}
+
+			if status := returnedTasks[0].Status; status != d.want {
+				t.Errorf("expected task to have status %d(%s) got %d(%s)", status, status.String(), d.want, d.want.String())
+				return
+			}
+
+		})
+	}
+}
+
+func Test_GetAllTasksByStatusEqualsFalse(t *testing.T) {
+	const fileName = "test_task.json"
+	defer removeFile(fileName)
+
+	tasks := make([]model.Task, 3)
+	for i := range 3 {
+		task := model.Task{
+			Id:          i,
+			Description: fmt.Sprintf("Test %d", i),
+			Status:      model.TaskStatus(i),
+			CreatedAt:   model.DateTime(time.Now()),
+			UpdatedAt:   model.DateTime(time.Now()),
+		}
+		tasks[i] = task
+
+		if err := AddTask(task, fileName); err != nil {
+			t.Errorf("expected to get no errors from AddTask call but got error: %v", err)
+			return
+		}
+	}
+
+	var testData = []struct{ doNotWant model.TaskStatus }{
+		{doNotWant: model.TODO}, {doNotWant: model.InProgress}, {doNotWant: model.Done},
+	}
+
+	for _, d := range testData {
+
+		var testName = fmt.Sprintf("should get all tasks with status NOT EQUALS %s given inputs status=%s, equals=%t, path=%s",
+			d.doNotWant.String(), d.doNotWant.String(), false, fileName)
+
+		t.Run(testName, func(t *testing.T) {
+			returnedTasks, err := GetAllTasksByStatus(d.doNotWant, false, fileName)
+			if err != nil {
+				t.Errorf("expected no errors from GetAllTasksByStatus call got \"%s\"", err)
+				return
+			}
+
+			if nOfTasks := len(returnedTasks); nOfTasks != 2 {
+				t.Errorf("expected two tasks returned from GetAllTasksByStatus got %d tasks", nOfTasks)
+				return
+			}
+
+			for _, returnedTask := range returnedTasks {
+				if returnedTask.Status == d.doNotWant {
+					t.Errorf("expected task to not have status %d(%s) got %+v", d.doNotWant, d.doNotWant.String(), returnedTask)
+					return
+				}
+			}
+
+		})
+	}
 }
 
 func addNTasksOrFail(fileName string, numberOfTasks int, t *testing.T) ([]model.Task, error) {

@@ -10,8 +10,8 @@ type TaskStatus int
 
 const (
 	TODO TaskStatus = iota
-	IN_PROGRESS
-	DONE
+	InProgress
+	Done
 )
 
 func (t TaskStatus) String() string {

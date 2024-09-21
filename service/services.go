@@ -155,6 +155,29 @@ func UpdateStatus(taskId int, status model.TaskStatus, path string) error {
 	return nil
 }
 
+func GetAllTasksByStatus(status model.TaskStatus, equals bool, path string) ([]model.Task, error) {
+
+	tasks, err := GetAllTasks(path)
+	if err != nil {
+		return nil, err
+	}
+
+	filteredTasks := make([]model.Task, 0)
+	for _, task := range tasks {
+		if equals && task.Status == status {
+			filteredTasks = append(filteredTasks, task)
+			continue
+		}
+
+		if !equals && task.Status != status {
+			filteredTasks = append(filteredTasks, task)
+		}
+	}
+
+	return filteredTasks, nil
+
+}
+
 func writeTaskList(tasks []model.Task, path string) error {
 	tasksJson, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
