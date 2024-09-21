@@ -203,6 +203,65 @@ func Test_DeleteTaskWithMultipleTasksWritten(t *testing.T) {
 	}
 }
 
+func Test_UpdateStatus(t *testing.T) {
+	const fileName = "test_task.json"
+	defer shutdown(fileName)
+
+	task, err := addTaskOrFail(fileName, t)
+	if err != nil {
+		return
+	}
+
+	var testTable = []struct {
+		taskId         int
+		expectedStatus model.TaskStatus
+		path           string
+	}{
+		{task.Id, model.TODO, fileName},
+		{task.Id, model.IN_PROGRESS, fileName},
+		{task.Id, model.DONE, fileName},
+	}
+
+	for _, d := range testTable {
+
+		testName := fmt.Sprintf("for input taskId=%d, status=%d(%s) and fileName=%s expect status to be %d",
+			d.taskId, d.expectedStatus, d.expectedStatus.String(), d.path, d.expectedStatus)
+
+		t.Run(testName, func(t *testing.T) {
+			if err = UpdateStatus(d.taskId, d.expectedStatus, d.path); err != nil {
+				t.Errorf("expected no error from UpdateStatus call but got \"%s\"", err)
+				return
+			}
+
+			retrievedTasks, err := getTasksFromFileOrFail(fileName, t)
+			if err != nil {
+				return
+			}
+
+			var retrievedTask model.Task
+			for _, retrievedTask = range retrievedTasks {
+				if retrievedTask.Id == d.taskId {
+					break
+				}
+			}
+
+			if retrievedTask == (model.Task{}) || retrievedTask.Id != d.taskId {
+				t.Errorf("expected to retrieve task with id %d, but got no tasks", d.taskId)
+				return
+			}
+
+			if retrievedTask.Status != d.expectedStatus {
+				t.Errorf("expected task %d to have status %d(%s), but got %d(%s)", d.taskId, d.expectedStatus,
+					d.expectedStatus.String(), retrievedTask.Status, retrievedTask.Status.String())
+				return
+			}
+
+		})
+
+	}
+
+}
+
 func addNTasksOrFail(fileName string, numberOfTasks int, t *testing.T) ([]model.Task, error) {
 
 	tasks := make([]model.Task, numberOfTasks)

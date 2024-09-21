@@ -7,6 +7,7 @@ import (
 	"go-task-tracker/model"
 	"io/fs"
 	"os"
+	"time"
 )
 
 func AddTask(task model.Task, path string) error {
@@ -44,6 +45,7 @@ func UpdateTask(taskId int, description string, path string) error {
 	for i := range tasks {
 		if tasks[i].Id == taskId {
 			tasks[i].Description = description
+			tasks[i].UpdatedAt = model.DateTime(time.Now())
 			taskExists = true
 			break
 		}
@@ -120,6 +122,34 @@ func DeleteTask(taskId int, path string) error {
 
 	if err = writeTaskList(tasks, path); err != nil {
 		return fmt.Errorf("failed to delete task %d: %w", taskId, err)
+	}
+
+	return nil
+}
+
+func UpdateStatus(taskId int, status model.TaskStatus, path string) error {
+
+	tasks, err := GetAllTasks(path)
+	if err != nil {
+		return fmt.Errorf("failed to update status for task with id %d: %w", taskId, err)
+	}
+
+	taskExists := false
+	for i, task := range tasks {
+		if task.Id == taskId {
+			taskExists = true
+			tasks[i].Status = status
+			tasks[i].UpdatedAt = model.DateTime(time.Now())
+			break
+		}
+	}
+
+	if !taskExists {
+		return fmt.Errorf("failed to update status for task with id %d, task does not exists", taskId)
+	}
+
+	if err = writeTaskList(tasks, path); err != nil {
+		return fmt.Errorf("failed to update status for task with id %d: %w", taskId, err)
 	}
 
 	return nil
