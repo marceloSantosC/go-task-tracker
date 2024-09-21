@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func AddTask(task model.Task, path string) error {
+func Add(task model.Task, path string) error {
 
 	tasks, err := GetAllTasks(path)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
