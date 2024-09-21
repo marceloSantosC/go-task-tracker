@@ -81,3 +81,60 @@ func GetAllTasks(path string) ([]model.Task, error) {
 	}
 	return tasks, nil
 }
+
+func DeleteTask(taskId int, path string) error {
+
+	tasks, err := GetAllTasks(path)
+	if err != nil {
+		return fmt.Errorf("failed to delete task %d: %w", taskId, err)
+	}
+
+	if len(tasks) == 1 && tasks[0].Id == taskId {
+		tasks = make([]model.Task, 0)
+		if err = writeTaskList(tasks, path); err != nil {
+			return fmt.Errorf("failed to delete task %d: %w", taskId, err)
+		}
+		return nil
+	}
+
+	taskToDeleteIndex := -1
+	for i, task := range tasks {
+		if task.Id == taskId {
+			taskToDeleteIndex = i
+			break
+		}
+	}
+
+	if taskToDeleteIndex == -1 {
+		return fmt.Errorf("failed to delete: task with id %d does not exists", taskId)
+	}
+
+	lastTaskIndex := len(tasks) - 1
+
+	if taskToDeleteIndex != lastTaskIndex {
+		tasks[taskToDeleteIndex] = tasks[lastTaskIndex]
+		tasks = tasks[:lastTaskIndex]
+	} else {
+		tasks = tasks[:len(tasks)-1]
+	}
+
+	if err = writeTaskList(tasks, path); err != nil {
+		return fmt.Errorf("failed to delete task %d: %w", taskId, err)
+	}
+
+	return nil
+}
+
+func writeTaskList(tasks []model.Task, path string) error {
+	tasksJson, err := json.MarshalIndent(tasks, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to write tasks to file %s: %w", path, err)
+	}
+
+	err = os.WriteFile(path, tasksJson, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write to file: %w", err)
+	}
+
+	return nil
+}

@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"go-task-tracker/model"
 	"log"
 	"os"
@@ -9,21 +10,15 @@ import (
 	"time"
 )
 
-var fileName = "test_task.json"
-
-func TestMain(m *testing.M) {
-	code := m.Run()
-	shutdown(fileName)
-	os.Exit(code)
-}
-
 func shutdown(fileName string) {
 	if err := os.Remove(fileName); err != nil {
-		log.Printf("Failed to remove file %s: %v", fileName, err)
+		log.Panicf("Failed to remove file %s: %v", fileName, err)
 	}
 }
 
 func Test_AddTask(t *testing.T) {
+	const fileName = "test_task.json"
+	defer shutdown(fileName)
 
 	task := model.Task{
 		Id:          1,
@@ -39,7 +34,7 @@ func Test_AddTask(t *testing.T) {
 		return
 	}
 
-	tasks, err := getTasksFromFileOrFail(t)
+	tasks, err := getTasksFromFileOrFail(fileName, t)
 
 	if tasksLen := len(tasks); tasksLen != 1 {
 		t.Errorf("expected to retrieve one task, but got %d", tasksLen)
@@ -54,6 +49,9 @@ func Test_AddTask(t *testing.T) {
 }
 
 func Test_GetAllTasks(t *testing.T) {
+	const fileName = "test_task.json"
+	defer shutdown(fileName)
+
 	if _, err := addTaskOrFail(fileName, t); err != nil {
 		return
 	}
@@ -72,6 +70,9 @@ func Test_GetAllTasks(t *testing.T) {
 }
 
 func Test_UpdateTask(t *testing.T) {
+	const fileName = "test_task.json"
+	defer shutdown(fileName)
+
 	task, err := addTaskOrFail(fileName, t)
 	if err != nil {
 		return
@@ -83,7 +84,7 @@ func Test_UpdateTask(t *testing.T) {
 		return
 	}
 
-	tasks, err := getTasksFromFileOrFail(t)
+	tasks, err := getTasksFromFileOrFail(fileName, t)
 	if err != nil {
 		return
 	}
@@ -112,6 +113,120 @@ func Test_UpdateTask(t *testing.T) {
 
 }
 
+func Test_DeleteTask(t *testing.T) {
+	const fileName = "test_task.json"
+	defer shutdown(fileName)
+
+	task, err := addTaskOrFail(fileName, t)
+	if err != nil {
+		return
+	}
+
+	taskId := task.Id
+
+	err = DeleteTask(taskId, fileName)
+	if err != nil {
+		t.Errorf("expected no errors from DeleteTask call got: \"%s\"", err)
+		return
+	}
+
+	tasks, err := getTasksFromFileOrFail(fileName, t)
+	if err != nil {
+		return
+	}
+
+	for _, returnedTask := range tasks {
+		if returnedTask.Id == taskId {
+			t.Errorf("expect to retrieve no tasks with id %d, got %+v", taskId, returnedTask)
+			return
+		}
+	}
+}
+
+func Test_DeleteLastTaskWithMultipleTasksWritten(t *testing.T) {
+	const fileName = "test_task.json"
+	defer shutdown(fileName)
+
+	createdTasks, err := addNTasksOrFail(fileName, 5, t)
+	if err != nil {
+		return
+	}
+
+	taskId := createdTasks[len(createdTasks)-1].Id
+
+	err = DeleteTask(taskId, fileName)
+	if err != nil {
+		t.Errorf("expected no errors from DeleteTask call got: \"%s\"", err)
+		return
+	}
+
+	retrievedTasks, err := getTasksFromFileOrFail(fileName, t)
+	if err != nil {
+		return
+	}
+
+	for _, retrievedTask := range retrievedTasks {
+		if retrievedTask.Id == taskId {
+			t.Errorf("expect to retrieve no tasks with id %d, got %+v", taskId, retrievedTask)
+			return
+		}
+	}
+}
+
+func Test_DeleteTaskWithMultipleTasksWritten(t *testing.T) {
+	const fileName = "test_task.json"
+	defer shutdown(fileName)
+
+	createdTasks, err := addNTasksOrFail(fileName, 5, t)
+	if err != nil {
+		return
+	}
+
+	taskId := createdTasks[2].Id
+
+	err = DeleteTask(taskId, fileName)
+	if err != nil {
+		t.Errorf("expected no errors from DeleteTask call got: \"%s\"", err)
+		return
+	}
+
+	retrievedTasks, err := getTasksFromFileOrFail(fileName, t)
+	if err != nil {
+		return
+	}
+
+	for _, retrievedTask := range retrievedTasks {
+		if retrievedTask.Id == taskId {
+			t.Errorf("expect to retrieve no tasks with id %d, got %+v", taskId, retrievedTask)
+			return
+		}
+	}
+}
+
+func addNTasksOrFail(fileName string, numberOfTasks int, t *testing.T) ([]model.Task, error) {
+
+	tasks := make([]model.Task, numberOfTasks)
+
+	for i := range numberOfTasks {
+		task := model.Task{
+			Id:          i,
+			Description: fmt.Sprintf("Test %d", i),
+			Status:      0,
+			CreatedAt:   model.DateTime(time.Now()),
+			UpdatedAt:   model.DateTime(time.Now()),
+		}
+
+		tasks[i] = task
+
+		if err := AddTask(task, fileName); err != nil {
+			t.Errorf("expected to get no errors from AddTask call but got error: %v", err)
+			return nil, err
+		}
+	}
+
+	return tasks, nil
+}
+
 func addTaskOrFail(fileName string, t *testing.T) (model.Task, error) {
 	task := model.Task{
 		Id:          1,
@@ -127,7 +242,7 @@ func addTaskOrFail(fileName string, t *testing.T) (model.Task, error) {
 	return task, nil
 }
 
-func getTasksFromFileOrFail(t *testing.T) ([]model.Task, error) {
+func getTasksFromFileOrFail(fileName string, t *testing.T) ([]model.Task, error) {
 	file, err := os.Open(fileName)
 	if err != nil {
 		t.Errorf("expected to open file %s but got error: %v", fileName, err)
