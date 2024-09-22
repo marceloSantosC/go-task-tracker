@@ -13,15 +13,15 @@ import (
 type TaskRepository interface {
 	AddTask(task model.Task) error
 
-	UpdateTask(taskId int, description string, path string) error
+	UpdateTask(taskId int, description string) error
 
 	GetAllTasks(path string) ([]model.Task, error)
 
-	DeleteTask(taskId int, path string) error
+	DeleteTask(taskId int) error
 
-	UpdateTaskStatus(taskId int, status model.TaskStatus, path string) error
+	UpdateTaskStatus(taskId int, status model.TaskStatus) error
 
-	GetAllTasksByStatus(status model.TaskStatus, equals bool, path string) ([]model.Task, error)
+	GetAllTasksByStatus(status model.TaskStatus, equals bool) ([]model.Task, error)
 }
 
 func AddTask(task model.Task, path string) error {
