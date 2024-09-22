@@ -29,8 +29,8 @@ func Test_NewTaskRepositoryFile_WithCreatedFile(t *testing.T) {
 		t.Errorf("expect path to be %s but was %s", fileName, repository.path)
 	}
 
-	if repository.lineToWrite == 0 {
-		t.Errorf("expect line to write to not be 0 but was %d", repository.lineToWrite)
+	if repository.offset == 0 {
+		t.Error("expect offset to not be 0")
 	}
 }
 
@@ -47,8 +47,8 @@ func Test_NewTaskRepositoryFile_WithNoFile(t *testing.T) {
 		t.Errorf("expect path to be %s but was %s", fileName, repository.path)
 	}
 
-	if repository.lineToWrite != 1 {
-		t.Errorf("expect line to write to be 1 but was %d", repository.lineToWrite)
+	if repository.offset != 2 {
+		t.Errorf("expect offset to be 1 but was %d", repository.offset)
 	}
 }
 

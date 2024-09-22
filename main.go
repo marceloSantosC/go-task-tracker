@@ -8,5 +8,5 @@ func main() {
 
 	filename := "task_list"
 	tr, _ := repository.NewTaskRepositoryFile(filename)
-	println(tr)
+	_ = tr
 }
