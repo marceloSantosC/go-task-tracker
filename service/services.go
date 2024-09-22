@@ -11,7 +11,7 @@ import (
 )
 
 type TaskRepository interface {
-	AddTask(task model.Task, path string) error
+	AddTask(task model.Task) error
 
 	UpdateTask(taskId int, description string, path string) error
 

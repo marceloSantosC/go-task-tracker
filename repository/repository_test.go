@@ -1,9 +1,12 @@
 package repository
 
 import (
+	"encoding/json"
 	"fmt"
+	"go-task-tracker/model"
 	"os"
 	"testing"
+	"time"
 )
 
 func Test_NewTaskRepositoryFile_WithCreatedFile(t *testing.T) {
@@ -49,6 +52,43 @@ func Test_NewTaskRepositoryFile_WithNoFile(t *testing.T) {
 
 	if repository.offset != 2 {
 		t.Errorf("expect offset to be 1 but was %d", repository.offset)
+	}
+}
+
+func Test_AddTask(t *testing.T) {
+	const fileName = "AddTask.json"
+	defer removeTestFile(fileName)
+
+	r, err := NewTaskRepositoryFile(fileName)
+	if err != nil {
+		t.Fatalf("failed to create TaskRepositoryFile")
+	}
+	task := model.Task{
+		Id:          1,
+		Description: "Test",
+		Status:      0,
+		CreatedAt:   model.DateTime(time.Now()),
+		UpdatedAt:   model.DateTime(time.Now()),
+	}
+
+	if err = r.AddTask(task); err != nil {
+		t.Fatalf("failed to call AddTask: \"%v\"", err)
+	}
+
+	file, err := os.Open(fileName)
+	if err != nil {
+		t.Fatalf("failed to create TaskRepositoryFile")
+	}
+	defer file.Close()
+
+	var tasks []model.Task
+	decoder := json.NewDecoder(file)
+	if err = decoder.Decode(&tasks); err != nil {
+		t.Fatalf("failed to parse json from file %s: \"%v\"", fileName, err)
+	}
+
+	if nOfTasks := len(tasks); nOfTasks != 1 {
+		t.Errorf("expected one task to be created, got %d", nOfTasks)
 	}
 }
 
