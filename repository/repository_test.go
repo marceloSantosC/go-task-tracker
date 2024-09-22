@@ -90,6 +90,10 @@ func Test_AddTask(t *testing.T) {
 	if nOfTasks := len(tasks); nOfTasks != 1 {
 		t.Errorf("expected one task to be created, got %d", nOfTasks)
 	}
+
+	if task = tasks[0]; task.Id != r.sequenceId {
+		t.Errorf("expected task id to be %d got %d", r.sequenceId, task.Id)
+	}
 }
 
 func removeTestFile(fileName string) {
