@@ -1,11 +1,14 @@
 package repository
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"go-task-tracker/model"
 	"os"
+	"regexp"
 	"sync"
+	"time"
 )
 
 type TaskRepositoryFile struct {
@@ -97,4 +100,75 @@ func (r *TaskRepositoryFile) AddTask(task model.Task) error {
 
 	r.offset += int64(writtenBytes)
 	return nil
+}
+
+func (r *TaskRepositoryFile) UpdateTask(id int, updatedTask model.UpdateTask) error {
+
+	file, err := os.OpenFile(r.path, os.O_RDWR, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open file %s: %w", r.path, err)
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	regexExpr := fmt.Sprintf("(\"Id\":%d)", id)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if matches, _ := regexp.MatchString(regexExpr, line); matches {
+			var task model.Task
+			if err = json.Unmarshal([]byte(line[:len(line)-1]), &task); err != nil {
+				return fmt.Errorf("failed to unmarshal json: %w", err)
+			}
+			task.Description = updatedTask.Description
+			task.Status = updatedTask.Status
+			task.UpdatedAt = model.DateTime(time.Now())
+
+			jsonBytes, err := json.Marshal(&task)
+			if err != nil {
+				return fmt.Errorf("failed to marshal json: %w", err)
+			}
+			line = string(jsonBytes) + line[len(line)-1:]
+		}
+		lines = append(lines, line)
+	}
+
+	if _, err = file.Seek(0, 0); err != nil {
+		return fmt.Errorf("failed to seek to beginning of file: %w", err)
+	}
+
+	if err = file.Truncate(0); err != nil {
+		return fmt.Errorf("failed to truncate file: %w", err)
+	}
+
+	writer := bufio.NewWriter(file)
+	for _, line := range lines {
+		if _, err = writer.WriteString(line + "\n"); err != nil {
+			return fmt.Errorf("failed to write to buffer for file %s: %w", r.path, err)
+		}
+	}
+
+	if err = writer.Flush(); err != nil {
+		return fmt.Errorf("failed to flush buffer for file %s: %w", r.path, err)
+	}
+
+	return nil
+}
+
+func (r *TaskRepositoryFile) GetAll(id int) ([]model.Task, error) {
+	file, err := os.Open(r.path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve task %d: %w", id, err)
+	}
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+	var tasks []model.Task
+	if err = decoder.Decode(&tasks); err != nil {
+		return nil, fmt.Errorf("failed to decode tasks: %w", err)
+	}
+
+	return tasks, nil
+
 }

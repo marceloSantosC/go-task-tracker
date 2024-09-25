@@ -13,7 +13,7 @@ import (
 type TaskRepository interface {
 	AddTask(task model.Task) error
 
-	UpdateTask(taskId int, updatedTask model.Task) error
+	UpdateTask(taskId int, updatedTask model.UpdateTask) error
 
 	GetAllTasks(path string) ([]model.Task, error)
 

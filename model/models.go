@@ -24,6 +24,10 @@ func (t TaskStatus) EnumIndex() int {
 
 type DateTime time.Time
 
+func (t *DateTime) String() string {
+	return fmt.Sprintf(`"%s"`, time.Time(*t).Format("2006-01-02 15:04:05"))
+}
+
 func (t *DateTime) MarshalJSON() ([]byte, error) {
 	stamp := fmt.Sprintf(`"%s"`, time.Time(*t).Format("2006-01-02 15:04:05"))
 	return []byte(stamp), nil
@@ -44,4 +48,9 @@ type Task struct {
 	Status      TaskStatus `json:"Status"`
 	CreatedAt   DateTime   `json:"CreatedAt"`
 	UpdatedAt   DateTime   `json:"UpdatedAt"`
+}
+
+type UpdateTask struct {
+	Description string     `json:"Description"`
+	Status      TaskStatus `json:"Status"`
 }

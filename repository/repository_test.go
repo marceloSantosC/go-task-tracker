@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"go-task-tracker/model"
@@ -93,6 +94,115 @@ func Test_AddTask(t *testing.T) {
 
 	if task = tasks[0]; task.Id != r.sequenceId {
 		t.Errorf("expected task id to be %d got %d", r.sequenceId, task.Id)
+	}
+}
+
+func Test_UpdateTask(t *testing.T) {
+	const fileName = "Test_UpdateTask.json"
+	defer removeTestFile(fileName)
+
+	repository, err := NewTaskRepositoryFile(fileName)
+	if err != nil {
+		t.Fatalf("failed to create TaskRepositoryFile")
+	}
+	tasks := instantiateTasks(3)
+	addTasksToFileOrFail(tasks, fileName, t)
+	updatedTask := model.UpdateTask{
+		Description: "Lorem",
+		Status:      1,
+	}
+
+	task := tasks[0]
+
+	if err = repository.UpdateTask(task.Id, updatedTask); err != nil {
+		t.Fatalf("expected call to UpdateTask to not return error, got \"%v\"", err)
+	}
+
+	file, err := os.Open(fileName)
+	if err != nil {
+		t.Fatalf("failed to open file %s", fileName)
+	}
+	defer file.Close()
+
+	var tasksInFile []model.Task
+	decoder := json.NewDecoder(file)
+	if err = decoder.Decode(&tasksInFile); err != nil {
+		t.Fatalf("failed to parse json from file %s: \"%v\"", fileName, err)
+	}
+
+	var taskInFile model.Task
+	for _, taskInFile = range tasksInFile {
+		if taskInFile.Id == task.Id {
+			break
+		}
+	}
+
+	if taskInFile == (model.Task{}) {
+		t.Fatalf("expected to find task with id %d", task.Id)
+	}
+
+	if taskInFile.Description != updatedTask.Description {
+		t.Fatalf("expected task description to be %s, got %s", updatedTask.Description, taskInFile.Description)
+	}
+
+	if taskInFile.UpdatedAt == task.UpdatedAt {
+		t.Fatalf("expected task updated at field to change, but was the same as before")
+	}
+
+}
+
+func instantiateTasks(numberOfTasks int) []model.Task {
+	tasks := make([]model.Task, numberOfTasks)
+	for i := range numberOfTasks {
+		task := model.Task{
+			Id:          i + 1,
+			Description: fmt.Sprintf("Task %d", i),
+			Status:      0,
+			CreatedAt:   model.DateTime(time.Date(2009, 11, 17, 20, 34, 58, 651387237, time.UTC)),
+			UpdatedAt:   model.DateTime(time.Date(2009, 11, 17, 20, 34, 58, 651387237, time.UTC)),
+		}
+		tasks[i] = task
+	}
+	return tasks
+}
+
+func addTasksToFileOrFail(tasks []model.Task, path string, t *testing.T) {
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("failed to create file %s: %s", path, err)
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+
+	if _, err = writer.WriteString("[\n"); err != nil {
+		t.Fatalf("failed to write to buffer: %v", err)
+	}
+
+	for i, task := range tasks {
+		jsonBytes, err := json.Marshal(&task)
+		if err != nil {
+			t.Fatalf("failed to serialize task: %v", err)
+		}
+
+		if _, err = writer.Write(jsonBytes); err != nil {
+			t.Fatalf("failed to write to buffer: %v", err)
+		}
+
+		if i != len(tasks)-1 {
+			if _, err = writer.WriteString(",\n"); err != nil {
+				t.Fatalf("failed to write newline in buffer: %v", err)
+			}
+		}
+
+	}
+
+	if _, err = writer.WriteString("\n]"); err != nil {
+		t.Fatalf("failed to write to buffer: %v", err)
+	}
+
+	if err = writer.Flush(); err != nil {
+		t.Fatalf("failed to flush buffer: %v", err)
 	}
 }
 
