@@ -105,7 +105,7 @@ func Test_UpdateTask(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create TaskRepositoryFile")
 	}
-	tasks := instantiateTasks(3)
+	tasks := newTasks(3)
 	addTasksToFileOrFail(tasks, fileName, t)
 	updatedTask := model.UpdateTask{
 		Description: "Lorem",
@@ -151,7 +151,30 @@ func Test_UpdateTask(t *testing.T) {
 
 }
 
-func instantiateTasks(numberOfTasks int) []model.Task {
+func Test_GetAllTasks(t *testing.T) {
+
+	fileName := "Test_GetAllTasks.json"
+	defer removeTestFile(fileName)
+
+	tasks := newTasks(5)
+	addTasksToFileOrFail(tasks, fileName, t)
+
+	repository, err := NewTaskRepositoryFile(fileName)
+	if err != nil {
+		t.Fatalf("failed to create TaskRepositoryFile")
+	}
+
+	tasksReturned, err := repository.GetAllTasks()
+	if err != nil {
+		t.Fatalf("expect GetAllTasks call to return no errors, got \"%s\"", err)
+	}
+
+	if len(tasksReturned) != len(tasks) {
+		t.Fatalf("expect %d tasks to be returned, got %d", len(tasks), len(tasksReturned))
+	}
+}
+
+func newTasks(numberOfTasks int) []model.Task {
 	tasks := make([]model.Task, numberOfTasks)
 	for i := range numberOfTasks {
 		task := model.Task{

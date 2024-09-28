@@ -156,10 +156,10 @@ func (r *TaskRepositoryFile) UpdateTask(id int, updatedTask model.UpdateTask) er
 	return nil
 }
 
-func (r *TaskRepositoryFile) GetAll(id int) ([]model.Task, error) {
+func (r *TaskRepositoryFile) GetAllTasks() ([]model.Task, error) {
 	file, err := os.Open(r.path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve task %d: %w", id, err)
+		return nil, fmt.Errorf("failed to retrieve tasks: %w", err)
 	}
 	defer file.Close()
 
