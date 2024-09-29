@@ -174,6 +174,43 @@ func Test_GetAllTasks(t *testing.T) {
 	}
 }
 
+func Test_DeleteTask(t *testing.T) {
+	fileName := "Test_DeleteTask"
+	defer removeTestFile(fileName)
+
+	tasks := newTasks(2)
+	addTasksToFileOrFail(tasks, fileName, t)
+
+	repository, err := NewTaskRepositoryFile(fileName)
+	if err != nil {
+		t.Fatalf("failed to create TaskRepositoryFile: %s", err)
+	}
+
+	taskToDelete := tasks[1]
+	if err := repository.DeleteTask(taskToDelete.Id); err != nil {
+		t.Fatalf("expected DeleteTask call to return no errors, got %s", err)
+	}
+
+	file, err := os.Open(fileName)
+	if err != nil {
+		t.Fatalf("failed to open file %s: %s", fileName, err)
+	}
+	defer file.Close()
+
+	var tasksInFile []model.Task
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&tasksInFile); err != nil {
+		t.Errorf("failed to parse json from file %s: \"%v\"", fileName, err)
+	}
+
+	for _, task := range tasksInFile {
+		if task.Id == taskToDelete.Id {
+			t.Errorf("expected task %d to be deleted", taskToDelete.Id)
+		}
+	}
+
+}
+
 func newTasks(numberOfTasks int) []model.Task {
 	tasks := make([]model.Task, numberOfTasks)
 	for i := range numberOfTasks {

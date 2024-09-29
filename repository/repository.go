@@ -134,23 +134,8 @@ func (r *TaskRepositoryFile) UpdateTask(id int, updatedTask model.UpdateTask) er
 		lines = append(lines, line)
 	}
 
-	if _, err = file.Seek(0, 0); err != nil {
-		return fmt.Errorf("failed to seek to beginning of file: %w", err)
-	}
-
-	if err = file.Truncate(0); err != nil {
-		return fmt.Errorf("failed to truncate file: %w", err)
-	}
-
-	writer := bufio.NewWriter(file)
-	for _, line := range lines {
-		if _, err = writer.WriteString(line + "\n"); err != nil {
-			return fmt.Errorf("failed to write to buffer for file %s: %w", r.path, err)
-		}
-	}
-
-	if err = writer.Flush(); err != nil {
-		return fmt.Errorf("failed to flush buffer for file %s: %w", r.path, err)
+	if err := truncateAndWrite(file, lines); err != nil {
+		return fmt.Errorf("failed to update task %d: %w", id, err)
 	}
 
 	return nil
@@ -171,4 +156,70 @@ func (r *TaskRepositoryFile) GetAllTasks() ([]model.Task, error) {
 
 	return tasks, nil
 
+}
+
+func (r *TaskRepositoryFile) DeleteTask(id int) error {
+	file, err := os.OpenFile(r.path, os.O_RDWR, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve tasks: %w", err)
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	regexExpr := fmt.Sprintf("(\"Id\":%d)", id)
+
+	taskToDeleteIndex := -1
+	for scanner.Scan() {
+		line := scanner.Text()
+		if matches, _ := regexp.MatchString(regexExpr, line); matches {
+			taskToDeleteIndex = len(lines)
+		}
+		lines = append(lines, line)
+	}
+
+	if err = scanner.Err(); err != nil {
+		return fmt.Errorf("failed to scan file: %w", err)
+	}
+
+	if taskToDeleteIndex == -1 {
+		return fmt.Errorf("task with id %d does not exists", id)
+	}
+
+	if len(lines) > 1 && taskToDeleteIndex == len(lines)-2 {
+		lineEndsWithComma := regexp.MustCompile(",$")
+		lines[taskToDeleteIndex-1] = lineEndsWithComma.ReplaceAllString(lines[taskToDeleteIndex-1], "")
+	}
+
+	lines = append(lines[:taskToDeleteIndex], lines[taskToDeleteIndex+1:]...)
+
+	if err := truncateAndWrite(file, lines); err != nil {
+		return fmt.Errorf("failed to delete task %d: %w", id, err)
+	}
+
+	return nil
+
+}
+
+func truncateAndWrite(file *os.File, lines []string) error {
+	if _, err := file.Seek(0, 0); err != nil {
+		return fmt.Errorf("failed to seek to beginning of file: %w", err)
+	}
+
+	if err := file.Truncate(0); err != nil {
+		return fmt.Errorf("failed to truncate file: %w", err)
+	}
+
+	writer := bufio.NewWriter(file)
+	for _, line := range lines {
+		if _, err := writer.WriteString(line + "\n"); err != nil {
+			return fmt.Errorf("failed to write in buffer: %w", err)
+		}
+	}
+
+	if err := writer.Flush(); err != nil {
+		return fmt.Errorf("failed to flush buffer: %w", err)
+	}
+
+	return nil
 }
