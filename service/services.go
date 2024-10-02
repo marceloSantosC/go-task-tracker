@@ -18,10 +18,6 @@ type TaskRepository interface {
 	GetAllTasks(path string) ([]model.Task, error)
 
 	DeleteTask(taskId int) error
-
-	UpdateTaskStatus(taskId int, status model.TaskStatus) error
-
-	GetAllTasksByStatus(status model.TaskStatus, equals bool) ([]model.Task, error)
 }
 
 func AddTask(task model.Task, path string) error {
