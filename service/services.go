@@ -10,16 +10,6 @@ import (
 	"time"
 )
 
-type TaskRepository interface {
-	AddTask(task model.Task) error
-
-	UpdateTask(taskId int, updatedTask model.UpdateTask) error
-
-	GetAllTasks(path string) ([]model.Task, error)
-
-	DeleteTask(taskId int) error
-}
-
 func AddTask(task model.Task, path string) error {
 
 	tasks, err := GetAllTasks(path)
