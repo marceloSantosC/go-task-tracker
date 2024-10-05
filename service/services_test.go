@@ -80,7 +80,7 @@ func Test_UpdateTask(t *testing.T) {
 	newDescription := "New task description"
 
 	if err = UpdateTask(task.Id, newDescription, fileName); err != nil {
-		t.Errorf("expected to get no errors from UpdateTask call but got error: %v", err)
+		t.Errorf("expected to get no errors from CreateOrUpdateTask call but got error: %v", err)
 		return
 	}
 

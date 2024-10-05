@@ -1,32 +1,33 @@
 package main
 
 import (
-	"fmt"
 	"go-task-tracker/repository"
+	"go-task-tracker/server"
 	"go-task-tracker/service"
-	"log"
 	"log/slog"
+	"net/http"
 	"os"
-	"time"
 )
 
 func main() {
 
+	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
 	filename := "task_list.json"
 	repo, err := repository.NewTaskRepositoryFile(filename)
 	if err != nil {
-		log.Panicf("failed to start app: %s", err)
+		log.Error("failed to start app", slog.String("error", err.Error()))
+		panic(err)
 	}
 
-	file, err := os.Create(fmt.Sprintf("logs_%d", time.Now().UnixMilli()))
-	if err != nil {
-		log.Panicf("failed to start app: %s", err)
+	log.Info("Initialized app using file.", slog.String("file", filename))
+	s := service.NewTaskService(&repo, log)
+	_ = server.NewTaskHandler(s, log)
+
+	log.Info("Server started on port 8080")
+	if err = http.ListenAndServe("127.0.0.1:8080", nil); err != nil {
+		log.Error("failed to start server", slog.String("error", err.Error()))
+		panic(err)
 	}
 
-	l := slog.New(slog.NewTextHandler(file, nil))
-
-	l.Info("Initialized app using file.", slog.String("file", filename))
-	service.NewTaskService(&repo, l)
-
-	fmt.Println("# GO Task Tracker #")
 }

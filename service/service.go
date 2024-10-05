@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"go-task-tracker/model"
 	"log/slog"
+	"time"
 )
 
 type TaskRepository interface {
 	AddTask(task model.Task) error
 
-	UpdateTask(taskId int, updatedTask model.UpdateTask) error
+	UpdateTask(taskId int, updatedTask model.CreateOrUpdateTask) error
 
 	GetAllTasks() ([]model.Task, error)
 
@@ -41,12 +42,20 @@ func NewTaskService(repository TaskRepository, log *slog.Logger) TaskService {
 	return TaskService{repository: repository, log: *log}
 }
 
-func (s *TaskService) AddTask(task model.Task) error {
+func (s *TaskService) AddTask(newTask model.CreateOrUpdateTask) error {
+
+	task := model.Task{
+		Description: newTask.Description,
+		Status:      newTask.Status,
+		CreatedAt:   model.DateTime(time.Now()),
+		UpdatedAt:   model.DateTime(time.Now()),
+	}
+
 	err := s.repository.AddTask(task)
 	if err != nil {
 		err = fmt.Errorf("failed to create task: %w", err)
 		s.log.Error(err.Error())
-		return NewError(err, "error when creating user, check logs for more info")
+		return NewError(err, "error when creating user")
 	}
 	return nil
 }
