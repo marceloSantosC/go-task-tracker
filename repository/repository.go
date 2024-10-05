@@ -3,6 +3,7 @@ package repository
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"go-task-tracker/model"
 	"os"
@@ -87,7 +88,7 @@ func (r *TaskRepositoryFile) AddTask(task model.Task) error {
 	}
 
 	stringJson := string(b)
-	if r.offset != int64(len(firstLineValue)) {
+	if firstLineSize := int64(len(firstLineValue)); r.offset != firstLineSize {
 		stringJson = fmt.Sprintf(",\n%s%s", stringJson, lastLineValue)
 	} else {
 		stringJson = fmt.Sprintf("%s%s", stringJson, lastLineValue)
@@ -98,11 +99,11 @@ func (r *TaskRepositoryFile) AddTask(task model.Task) error {
 		return fmt.Errorf("failed to write to file: %w", err)
 	}
 
-	r.offset += int64(writtenBytes)
+	r.offset += int64(writtenBytes) - int64(len(lastLineValue))
 	return nil
 }
 
-func (r *TaskRepositoryFile) UpdateTask(id int, updatedTask model.UpdateTask) error {
+func (r *TaskRepositoryFile) UpdateTask(id int, updatedTask model.CreateOrUpdateTask) error {
 
 	file, err := os.OpenFile(r.path, os.O_RDWR, 0644)
 	if err != nil {
@@ -114,9 +115,11 @@ func (r *TaskRepositoryFile) UpdateTask(id int, updatedTask model.UpdateTask) er
 	scanner := bufio.NewScanner(file)
 	regexExpr := fmt.Sprintf("(\"Id\":%d)", id)
 
+	taskExists := false
 	for scanner.Scan() {
 		line := scanner.Text()
 		if matches, _ := regexp.MatchString(regexExpr, line); matches {
+			taskExists = matches
 			var task model.Task
 			if err = json.Unmarshal([]byte(line[:len(line)-1]), &task); err != nil {
 				return fmt.Errorf("failed to unmarshal json: %w", err)
@@ -132,6 +135,10 @@ func (r *TaskRepositoryFile) UpdateTask(id int, updatedTask model.UpdateTask) er
 			line = string(jsonBytes) + line[len(line)-1:]
 		}
 		lines = append(lines, line)
+	}
+
+	if !taskExists {
+		return errors.New(fmt.Sprintf("task with %d does not exists", id))
 	}
 
 	if err := truncateAndWrite(file, lines); err != nil {

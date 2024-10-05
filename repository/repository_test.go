@@ -107,7 +107,7 @@ func Test_UpdateTask(t *testing.T) {
 	}
 	tasks := newTasks(3)
 	addTasksToFileOrFail(tasks, fileName, t)
-	updatedTask := model.UpdateTask{
+	updatedTask := model.CreateOrUpdateTask{
 		Description: "Lorem",
 		Status:      1,
 	}
@@ -115,7 +115,7 @@ func Test_UpdateTask(t *testing.T) {
 	task := tasks[0]
 
 	if err = repository.UpdateTask(task.Id, updatedTask); err != nil {
-		t.Fatalf("expected call to UpdateTask to not return error, got \"%v\"", err)
+		t.Fatalf("expected call to CreateOrUpdateTask to not return error, got \"%v\"", err)
 	}
 
 	file, err := os.Open(fileName)
