@@ -59,3 +59,26 @@ func (s *TaskService) AddTask(newTask model.CreateOrUpdateTask) error {
 	}
 	return nil
 }
+
+func (s *TaskService) GetTasks(status model.TaskStatus, description string) ([]model.Task, error) {
+
+	tasks, err := s.repository.GetAllTasks()
+	if err != nil {
+		s.log.Error(fmt.Sprintf("failed to get tasks using filters status=%d, description=%s", status, description), slog.Any("err", err))
+		return nil, fmt.Errorf("failed to get tasks: %w", err)
+	}
+
+	if status == -1 && description == "" {
+		return tasks, nil
+	}
+
+	tasksFiltered := make([]model.Task, 0)
+	for _, task := range tasks {
+		if (description == "" || description == task.Description) && (status == -1 || task.Status == status) {
+			tasksFiltered = append(tasksFiltered, task)
+		}
+	}
+
+	return tasksFiltered, nil
+
+}
