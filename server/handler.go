@@ -23,6 +23,7 @@ func NewTaskHandler(service service.TaskService, log *slog.Logger) TaskHandler {
 	http.HandleFunc("POST /tasks", h.HandlePostTask)
 	http.HandleFunc("GET /tasks", h.HandleGetTasks)
 	http.HandleFunc("PUT /tasks/{id}", h.HandleUpdateTask)
+	http.HandleFunc("DELETE /tasks/{id}", h.HandleDeleteTask)
 	return h
 }
 
@@ -34,17 +35,17 @@ func (h TaskHandler) HandlePostTask(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&task); err != nil {
 		h.log.Error("failed to process request: ", err)
-		w.WriteHeader(400)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	if err := h.service.AddTask(task); err != nil {
 		h.log.Error("failed to process request: ", err)
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(201)
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (h TaskHandler) HandleGetTasks(w http.ResponseWriter, r *http.Request) {
@@ -58,20 +59,20 @@ func (h TaskHandler) HandleGetTasks(w http.ResponseWriter, r *http.Request) {
 		var err error
 		if status, err = strconv.Atoi(statusFilter); err != nil {
 			h.log.Info(fmt.Sprintf("input %s is invalid for query param status", statusFilter))
-			w.WriteHeader(400)
+			w.WriteHeader(http.StatusBadRequest)
 		}
 	}
 
 	response, err := h.service.GetTasks(model.TaskStatus(status), description)
 	if err != nil {
 		h.log.Error(fmt.Sprintf("failed to get tasks: %s", err))
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 
 	jsonRes, err := json.Marshal(&response)
 	if err != nil {
 		h.log.Error(fmt.Sprintf("failed to marshal json: %s", err))
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -86,7 +87,7 @@ func (h TaskHandler) HandleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		h.log.Error(fmt.Sprintf("invalid path variable id with value %s", r.PathValue("id")))
-		w.WriteHeader(400)
+		w.WriteHeader(http.StatusBadRequest)
 	}
 
 	var task model.UpdateTask
@@ -94,15 +95,32 @@ func (h TaskHandler) HandleUpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&task); err != nil {
 		h.log.Error("failed to process request: ", err)
-		w.WriteHeader(400)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	if err := h.service.UpdateTask(id, task); err != nil {
 		h.log.Error("failed to process request: ", err)
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(202)
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func (h TaskHandler) HandleDeleteTask(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		h.log.Error(fmt.Sprintf("invalid path variable id with value %s", r.PathValue("id")))
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	if err := h.service.DeleteTask(id); err != nil {
+		h.log.Error("failed to process request: ", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

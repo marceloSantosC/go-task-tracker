@@ -91,3 +91,12 @@ func (s *TaskService) UpdateTask(taskId int, taskToUpdate model.UpdateTask) erro
 	s.log.Info(fmt.Sprintf("Task %d updated with values %+v", taskId, taskToUpdate))
 	return nil
 }
+
+func (s *TaskService) DeleteTask(taskId int) error {
+	s.log.Info(fmt.Sprintf("Deleting task %d...", taskId))
+	if err := s.repository.DeleteTask(taskId); err != nil {
+		s.log.Error(fmt.Sprintf("failed to delete task %d: %s", taskId, err))
+		return fmt.Errorf("failed to delete task: %w", err)
+	}
+	return nil
+}
