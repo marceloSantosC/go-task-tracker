@@ -22,13 +22,14 @@ func NewTaskHandler(service service.TaskService, log *slog.Logger) TaskHandler {
 	}
 	http.HandleFunc("POST /tasks", h.HandlePostTask)
 	http.HandleFunc("GET /tasks", h.HandleGetTasks)
+	http.HandleFunc("PUT /tasks/{id}", h.HandleUpdateTask)
 	return h
 }
 
 func (h TaskHandler) HandlePostTask(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	var task model.CreateOrUpdateTask
+	var task model.CreateTask
 	decoder := json.NewDecoder(r.Body)
 
 	if err := decoder.Decode(&task); err != nil {
@@ -77,4 +78,31 @@ func (h TaskHandler) HandleGetTasks(w http.ResponseWriter, r *http.Request) {
 	if _, err := w.Write(jsonRes); err != nil {
 		h.log.Error(fmt.Sprintf("error when writing http response: %s", err))
 	}
+}
+
+func (h TaskHandler) HandleUpdateTask(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		h.log.Error(fmt.Sprintf("invalid path variable id with value %s", r.PathValue("id")))
+		w.WriteHeader(400)
+	}
+
+	var task model.UpdateTask
+	decoder := json.NewDecoder(r.Body)
+
+	if err := decoder.Decode(&task); err != nil {
+		h.log.Error("failed to process request: ", err)
+		w.WriteHeader(400)
+		return
+	}
+
+	if err := h.service.UpdateTask(id, task); err != nil {
+		h.log.Error("failed to process request: ", err)
+		w.WriteHeader(500)
+		return
+	}
+
+	w.WriteHeader(202)
 }

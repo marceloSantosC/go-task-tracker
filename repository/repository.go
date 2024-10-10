@@ -103,7 +103,7 @@ func (r *TaskRepositoryFile) AddTask(task model.Task) error {
 	return nil
 }
 
-func (r *TaskRepositoryFile) UpdateTask(id int, updatedTask model.CreateOrUpdateTask) error {
+func (r *TaskRepositoryFile) UpdateTask(id int, updatedTask model.UpdateTask) error {
 
 	file, err := os.OpenFile(r.path, os.O_RDWR, 0644)
 	if err != nil {
@@ -124,8 +124,15 @@ func (r *TaskRepositoryFile) UpdateTask(id int, updatedTask model.CreateOrUpdate
 			if err = json.Unmarshal([]byte(line[:len(line)-1]), &task); err != nil {
 				return fmt.Errorf("failed to unmarshal json: %w", err)
 			}
-			task.Description = updatedTask.Description
-			task.Status = updatedTask.Status
+
+			if updatedTask.Description != nil {
+				task.Description = *updatedTask.Description
+			}
+
+			if updatedTask.Status != nil {
+				task.Status = *updatedTask.Status
+			}
+
 			task.UpdatedAt = model.DateTime(time.Now())
 
 			jsonBytes, err := json.Marshal(&task)

@@ -50,7 +50,12 @@ type Task struct {
 	UpdatedAt   DateTime   `json:"UpdatedAt"`
 }
 
-type CreateOrUpdateTask struct {
+type CreateTask struct {
 	Description string     `json:"description"`
 	Status      TaskStatus `json:"status"`
+}
+
+type UpdateTask struct {
+	Description *string     `json:"description"`
+	Status      *TaskStatus `json:"status"`
 }

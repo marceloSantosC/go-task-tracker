@@ -10,7 +10,7 @@ import (
 type TaskRepository interface {
 	AddTask(task model.Task) error
 
-	UpdateTask(taskId int, updatedTask model.CreateOrUpdateTask) error
+	UpdateTask(taskId int, updatedTask model.UpdateTask) error
 
 	GetAllTasks() ([]model.Task, error)
 
@@ -42,7 +42,7 @@ func NewTaskService(repository TaskRepository, log *slog.Logger) TaskService {
 	return TaskService{repository: repository, log: *log}
 }
 
-func (s *TaskService) AddTask(newTask model.CreateOrUpdateTask) error {
+func (s *TaskService) AddTask(newTask model.CreateTask) error {
 
 	task := model.Task{
 		Description: newTask.Description,
@@ -80,5 +80,14 @@ func (s *TaskService) GetTasks(status model.TaskStatus, description string) ([]m
 	}
 
 	return tasksFiltered, nil
+}
 
+func (s *TaskService) UpdateTask(taskId int, taskToUpdate model.UpdateTask) error {
+	s.log.Info(fmt.Sprintf("Updating task %d with values %+v", taskId, taskToUpdate))
+	if err := s.repository.UpdateTask(taskId, taskToUpdate); err != nil {
+		s.log.Error(fmt.Sprintf("error when updating task: %s", err))
+		return fmt.Errorf("failed to update task: %w", err)
+	}
+	s.log.Info(fmt.Sprintf("Task %d updated with values %+v", taskId, taskToUpdate))
+	return nil
 }
